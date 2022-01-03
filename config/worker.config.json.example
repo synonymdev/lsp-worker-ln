@@ -1,0 +1,12 @@
+{
+  "ln_nodes": [
+    {
+      "cert": "/Users/reza/.polar/networks/3/volumes/lnd/grace/tls.cert",
+      "macaroon": "/Users/reza/.polar/networks/3/volumes/lnd/grace/data/chain/bitcoin/regtest/admin.macaroon",
+      "socket": "127.0.0.1:10007",
+      "node_type": "LND",
+      "node_name": "lnd"
+    }
+  ],
+  "db_url":"mongodb://localhost:27017"
+}
