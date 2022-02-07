@@ -106,6 +106,14 @@ class LightningNode {
     return this.node.subscribeToForwards()
   }
 
+  subscribeToChannelRequests () {
+    return this.node.subscribeToChannelRequests()
+  }
+
+  subscribeToPeers () {
+    return this.node.subscribeToPeers()
+  }
+
   subscribeToTopology () {
     return this.node.subscribeToGraph()
   }
@@ -140,6 +148,10 @@ class LightningNode {
 
   addPeer (args, cb) {
     return this.node.addPeer(args, cb)
+  }
+
+  updateRoutingFees (args, cb) {
+    return this.node.updateRoutingFees(args, cb)
   }
 
   listInvoices (args, cb) {

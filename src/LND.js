@@ -63,6 +63,25 @@ class LND {
     })
   }
 
+  subscribeToChannelRequests () {
+    const event = new EventEmitter()
+    const sub = lns.subscribeToOpenRequests({ lnd: this.lnd })
+
+    sub.on('channel_request', (req) => {
+      event.emit('channel_request', req)
+    })
+    sub.on('end', (err) => {
+      event.emit('end', err)
+    })
+    sub.on('error', (err) => {
+      console.log('Connectin to LND threw error ')
+      console.log(err)
+      event.emit('end', err)
+    })
+
+    return event
+  }
+
   cancelInvoice (args, cb) {
     this._lnd('cancelHodlInvoice', { id: args.id }, cb)
   }
@@ -198,6 +217,19 @@ class LND {
     return event
   }
 
+  subscribeToPeers () {
+    const event = new EventEmitter()
+    const sub = lns.subscribeToPeers({ lnd: this.lnd })
+
+    sub.on('connected', (data) => {
+      event.emit('connected', data)
+    })
+    sub.on('disconnected', (data) => {
+      event.emit('disconnected', data)
+    })
+    return event
+  }
+
   subscribeToForwards () {
     const event = new EventEmitter()
     const sub = lns.subscribeToForwards({ lnd: this.lnd })
@@ -270,6 +302,10 @@ class LND {
     this._lnd('addPeer', args, (err, data) => {
       console.log(err, data)
     })
+  }
+
+  updateRoutingFees (args, cb) {
+    this._lnd('updateRoutingFees', args, cb)
   }
 
   getSettledPayment (id, cb) {

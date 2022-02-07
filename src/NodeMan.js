@@ -1,8 +1,10 @@
 const async = require('async')
 const Node = require('./Node')
+const { EventEmitter } = require('events')
 
-class LightningManager {
+class LightningManager extends EventEmitter {
   constructor (config) {
+    super()
     this.config = config
     this.setNode()
   }
@@ -16,10 +18,75 @@ class LightningManager {
     if (this.nodes.length === 0) throw new Error('Nodes not set')
     async.map(this.nodes, (node, next) => {
       node.start(next)
-    }, (err, data) => {
+    }, (err) => {
       if (err) throw err
-      cb(null, this)
+      this.setupNodes((err, data) => {
+        if (err) throw err
+        cb(null, this)
+      })
     })
+  }
+
+  setupNodes (cb) {
+    this.listenToEvents()
+    cb()
+  }
+
+  listenToEvents () {
+    const event = this.subscribeToForwards({})
+    event.on('forward', (d) => {
+      this.config.events.htlc_forward_event.forEach((svc) => {
+        this.emit('broadcast', { method: 'newHtlcForward', args: [d], svc })
+      })
+    })
+
+    const chanAcceptorSvc = this.config.events.channel_acceptor
+    if (chanAcceptorSvc) {
+      const chanAcceptor = this.subscribeToChannelRequests({})
+      // TODO: Multi node support
+      console.log('Channel acceptor is listening: service: ' + chanAcceptorSvc)
+      chanAcceptor.on('channel_request', (chan) => {
+        console.log('New Channel Request:')
+        console.log(`ID: ${chan.id}`)
+        console.log(`Capacity: ${chan.capacity}`)
+        console.log(`Remote Node: ${chan.partner_public_key}`)
+        this.emit('broadcast', {
+          method: 'newChannelRequest',
+          args: chan,
+          svc: chanAcceptorSvc,
+          cb: (err, data) => {
+            if (err) {
+              console.log('CHANNEL_ACCEPTOR_ERROR: ', err)
+              console.log('Rejecting channel', chan.id)
+              return chan.reject()
+            }
+            if (data.accept) {
+              console.log('Accepted channel', chan.id)
+              chan.accept()
+            } else {
+              console.log('Rejected channel', chan.id)
+              chan.reject()
+            }
+          }
+        })
+      })
+    }
+
+    const peerSvc = this.config.events.peer_events
+    if (peerSvc) {
+      const peers = this.subscribeToPeers()
+      peers.on('connected', (p) => {
+        peerSvc.forEach((svc) => {
+          this.emit('broadcast', { method: 'newPeerEvent', args: { event: 'connected', peer: p }, svc })
+        })
+      })
+
+      peers.on('disconnected', (p) => {
+        peerSvc.forEach((svc) => {
+          this.emit('broadcast', { method: 'newPeerEvent', args: { event: 'disconnected', peer: p }, svc })
+        })
+      })
+    }
   }
 
   getOnChainBalance (config, args, cb) {
@@ -107,6 +174,14 @@ class LightningManager {
     return this.getNode(config).subscribeToForwards()
   }
 
+  subscribeToChannelRequests (config) {
+    return this.getNode(config).subscribeToChannelRequests()
+  }
+
+  subscribeToPeers (config) {
+    return this.getNode(config).subscribeToPeers()
+  }
+
   subscribeToTopology (config) {
     return this.getNode(config).subscribeToTopology()
   }
@@ -116,7 +191,17 @@ class LightningManager {
   }
 
   listChannels (config, args, cb) {
-    return this.getNode(config).listChannels(args, cb)
+    return new Promise((resolve, reject) => {
+      this.getNode(config).listChannels(args, (err, data) => {
+        if (err) return cb ? cb(err) : reject(err)
+        if (args && args.remote_node) {
+          data = data.filter((ch) => {
+            return ch.partner_public_key === args.remote_node
+          })
+        }
+        cb ? cb(null, data) : resolve(data)
+      })
+    })
   }
 
   listPeers (config, args, cb) {
@@ -141,6 +226,18 @@ class LightningManager {
 
   addPeer (config, args, cb) {
     return this.getNode(config).addPeer(args, cb)
+  }
+
+  updateRoutingFees (config, args, cb) {
+    return this.getNode(config).updateRoutingFees(args, (err, data) => {
+      if (err) {
+        return cb(err)
+      }
+      if (data.failures && data.failures.length > 0) {
+        return cb(data.failures)
+      }
+      cb(null, data)
+    })
   }
 }
 

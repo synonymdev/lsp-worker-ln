@@ -13,7 +13,19 @@ class Lightning extends Worker {
       port: 5812,
       db_url: 'mongodb://localhost:27017'
     })
-    this.ln = new NodeMan({ nodes: lnConfig.ln_nodes })
+    this.ln = new NodeMan(
+      {
+        nodes: lnConfig.ln_nodes,
+        events: {
+          htlc_forward_event: lnConfig.htlc_forward_event,
+          channel_acceptor: lnConfig.channel_acceptor,
+          peer_events: lnConfig.peer_events
+        }
+      })
+
+    this.ln.on('broadcast', ({ svc, method, args, cb }) => {
+      this.callWorker(svc, method, args, cb)
+    })
   }
 
   start () {
