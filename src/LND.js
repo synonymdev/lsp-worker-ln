@@ -68,7 +68,17 @@ class LND {
     const sub = lns.subscribeToOpenRequests({ lnd: this.lnd })
 
     sub.on('channel_request', (req) => {
-      event.emit('channel_request', req)
+      this.listPeers({},(err,data)=>{
+        if(err) {
+          console.log("FAILED TO GET PEERS FOR CHANNEL REQUEST")
+          console.log(err)
+          req.reject()
+          return 
+        }
+        const peer = _.find(data,{public_key : req.partner_public_key })
+        req.peer_info = peer
+        event.emit('channel_request', req)
+      })
     })
     sub.on('end', (err) => {
       event.emit('end', err)
