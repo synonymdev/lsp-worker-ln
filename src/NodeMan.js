@@ -64,7 +64,7 @@ class LightningManager extends EventEmitter {
               console.log('Accepted channel', chan.id)
               chan.accept()
             } else {
-              console.log('Rejected channel', chan.id)
+              console.log('Rejected channel', chan.id, data.reason)
               chan.reject()
             }
           }

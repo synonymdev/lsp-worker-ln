@@ -32,7 +32,12 @@ class LND {
 
   _lnd (method, args, cb) {
     const params = _.extend({ lnd: this.lnd }, args)
-    return lns[method](params, cb)
+    return lns[method](params, (err,data)=>{
+      if(err){
+        return cb(new Error(err),data)
+      }
+      return cb(err,data)
+    })
   }
 
   getFeeRate (args, cb) {
@@ -370,7 +375,7 @@ class LND {
       local_tokens: args.local_amt,
       give_tokens: args.remote_amt,
       partner_public_key: args.remote_pub_key
-    }, cb)
+    },cb)
   }
 
   closeChannel (args, cb) {
