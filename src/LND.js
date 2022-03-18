@@ -374,7 +374,8 @@ class LND {
     this._lnd('openChannel', {
       local_tokens: args.local_amt,
       give_tokens: args.remote_amt,
-      partner_public_key: args.remote_pub_key
+      partner_public_key: args.remote_pub_key,
+      is_private: args.is_private
     },cb)
   }
 
