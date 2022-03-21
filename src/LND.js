@@ -34,7 +34,7 @@ class LND {
     const params = _.extend({ lnd: this.lnd }, args)
     return lns[method](params, (err,data)=>{
       if(err){
-        return cb(new Error(err),data)
+        return cb(new Error(JSON.stringify(err)),data)
       }
       return cb(err,data)
     })
