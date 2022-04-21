@@ -21,7 +21,8 @@ class LightningNode {
     this.getInfo((err, data) => {
       if (err) throw err
       this.info = {
-        pubkey: data.public_key
+        pubkey: data.public_key,
+        ...data
       }
       cb(null, data)
     })

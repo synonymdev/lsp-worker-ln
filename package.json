@@ -2,7 +2,7 @@
   "name": "blocktank-worker-ln",
   "version": "0.0.1",
   "description": "Blocktank LN API",
-  "main": "ecosystem.config.js",
+  "main": "index.js",
   "dependencies": {
     "async": "^3.2.3",
     "blocktank-worker": "git+https://github.com/synonymdev/blocktank-worker.git",
