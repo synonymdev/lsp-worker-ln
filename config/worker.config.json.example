@@ -1,0 +1,12 @@
+{
+  "ln_nodes": [
+    {
+      "cert": "tls.cert",
+      "macaroon": "admin.macaroon",
+      "socket": "127.0.0.1:10007",
+      "node_type": "LND",
+      "node_name": "lnd"
+    }
+  ],
+  "db_url":"mongodb://localhost:27017"
+}
