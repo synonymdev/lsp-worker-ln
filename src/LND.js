@@ -32,11 +32,11 @@ class LND {
 
   _lnd (method, args, cb) {
     const params = _.extend({ lnd: this.lnd }, args)
-    return lns[method](params, (err,data)=>{
-      if(err){
-        return cb(new Error(JSON.stringify(err)),data)
+    return lns[method](params, (err, data) => {
+      if (err) {
+        return cb(new Error(JSON.stringify(err)), data)
       }
-      return cb(err,data)
+      return cb(err, data)
     })
   }
 
@@ -73,14 +73,14 @@ class LND {
     const sub = lns.subscribeToOpenRequests({ lnd: this.lnd })
 
     sub.on('channel_request', (req) => {
-      this.listPeers({},(err,data)=>{
-        if(err) {
-          console.log("FAILED TO GET PEERS FOR CHANNEL REQUEST")
+      this.listPeers({}, (err, data) => {
+        if (err) {
+          console.log('FAILED TO GET PEERS FOR CHANNEL REQUEST')
           console.log(err)
           req.reject()
-          return 
+          return
         }
-        const peer = _.find(data,{public_key : req.partner_public_key })
+        const peer = _.find(data, { public_key: req.partner_public_key })
         req.peer_info = peer
         event.emit('channel_request', req)
       })
@@ -314,9 +314,7 @@ class LND {
   }
 
   addPeer (args, cb) {
-    this._lnd('addPeer', args, (err, data) => {
-      console.log(err, data)
-    })
+    this._lnd('addPeer', args, cb)
   }
 
   updateRoutingFees (args, cb) {
@@ -376,7 +374,7 @@ class LND {
       give_tokens: args.remote_amt,
       partner_public_key: args.remote_pub_key,
       is_private: args.is_private
-    },cb)
+    }, cb)
   }
 
   closeChannel (args, cb) {
