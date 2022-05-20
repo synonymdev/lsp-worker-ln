@@ -48,12 +48,11 @@ class Lightning extends Worker {
       args = config
     }
     if (!args || !Array.isArray(args)) {
-      args = [{}, args]
+      args = [args]
     } else if (args.length === 1) {
-      args = [{}, args[0]]
+      args = [args[0]]
     }
-    args.push(cb)
-    this.ln[action].apply(this.ln, args)
+    this.ln.callAction(action,config,args,cb)
   }
 }
 

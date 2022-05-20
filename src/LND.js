@@ -144,6 +144,7 @@ class LND {
   getInfo (cb) {
     this._lnd('getWalletInfo', {}, (err, data) => {
       if (err) return cb(err)
+      data._internal_node_name = this.config.node_name
       cb(null, data)
     })
   }
@@ -269,7 +270,7 @@ class LND {
   }
 
   listPayments (args, cb) {
-    this._lnd('getPayments', args, cb)
+    this._lnd('getPayments', args,cb)
   }
 
   getPayment (id, cb) {
@@ -315,6 +316,10 @@ class LND {
 
   addPeer (args, cb) {
     this._lnd('addPeer', args, cb)
+  }
+
+  getForwards (args, cb) {
+    this._lnd('getForwards', args, cb)
   }
 
   updateRoutingFees (args, cb) {
@@ -381,6 +386,17 @@ class LND {
     this._lnd('closeChannel', {
       id: args.id
     }, cb)
+  }
+  getChannelBalance(args,cb){
+    this._lnd('getChannelBalance', args, cb)
+  }
+
+  getChainBalance(args,cb){
+    this._lnd('getChainBalance', args, cb)
+  }
+
+  getPendingChainBalance(args,cb){
+    this._lnd('getPendingChainBalance', args, cb)
   }
 }
 

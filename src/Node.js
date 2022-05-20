@@ -21,6 +21,7 @@ class LightningNode {
     this.getInfo((err, data) => {
       if (err) throw err
       this.info = {
+        node_name: this.config.node_name,
         pubkey: data.public_key,
         ...data
       }
@@ -81,6 +82,10 @@ class LightningNode {
 
   pay ({ invoice }, cb) {
     this.node.pay(invoice, cb)
+  }
+
+  getForwards(args,cb){
+    this.node.getForwards(args,cb)    
   }
 
   getPayment (args, cb) {
@@ -161,6 +166,18 @@ class LightningNode {
 
   listPayments (args, cb) {
     return this.node.listPayments(args, cb)
+  }
+
+  getChannelBalance(args,cb){
+    return this.node.getChannelBalance(args, cb)
+  }
+
+  getChainBalance(args,cb){
+    return this.node.getChainBalance(args, cb)
+  }
+
+  getPendingChainBalance(args,cb){
+    return this.node.getPendingChainBalance(args, cb)
   }
 }
 
