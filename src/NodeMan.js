@@ -6,16 +6,11 @@ class LightningManager extends EventEmitter {
   constructor (config) {
     super()
     this.config = config
-    this.setNode()
-  }
-
-  setNode () {
-    this.nodes = this.config.nodes
-      .map((node) => new Node(node))
   }
 
   start (cb) {
-    if (this.nodes.length === 0) throw new Error('Nodes not set')
+    if (this.config.nodes.length === 0) throw new Error('Nodes not set')
+    this.nodes = this.config.nodes.map((node) => new Node(node))
     async.map(this.nodes, (node, next) => {
       node.start(next)
     }, (err) => {
@@ -33,166 +28,197 @@ class LightningManager extends EventEmitter {
   }
 
   listenToEvents () {
-    const event = this.subscribeToForwards({})
-    event.on('forward', (d) => {
-      this.config.events.htlc_forward_event.forEach((svc) => {
-        this.emit('broadcast', { method: 'newHtlcForward', args: [d], svc })
-      })
-    })
-
-    const chanAcceptorSvc = this.config.events.channel_acceptor
-    if (chanAcceptorSvc) {
-      const chanAcceptor = this.subscribeToChannelRequests({})
-      // TODO: Multi node support
-      console.log('Channel acceptor is listening: service: ' + chanAcceptorSvc)
-      chanAcceptor.on('channel_request', (chan) => {
-        console.log('New Channel Request:')
-        console.log(`ID: ${chan.id}`)
-        console.log(`Capacity: ${chan.capacity}`)
-        console.log(`Remote Node: ${chan.partner_public_key}`)
-        this.emit('broadcast', {
-          method: 'newChannelRequest',
-          args: chan,
-          svc: chanAcceptorSvc,
-          cb: (err, data) => {
-            if (err) {
-              console.log('CHANNEL_ACCEPTOR_ERROR: ', err)
-              console.log('Rejecting channel', chan.id)
-              return chan.reject()
-            }
-            if (data.accept) {
-              console.log('Accepted channel', chan.id)
-              chan.accept()
-            } else {
-              console.log('Rejected channel', chan.id, data.reason)
-              chan.reject()
-            }
-          }
+    this.getNode({all:true}).map((node)=>{
+      const event = this.subscribeToForwards(node)
+      event.on('forward', (d) => {
+        this.config.events.htlc_forward_event.forEach((svc) => {
+          this.emit('broadcast', { method: 'newHtlcForward', args: [d], svc })
         })
+      })
+
+      const chanAcceptorSvc = this.config.events.channel_acceptor
+      if (chanAcceptorSvc) {
+        const chanAcceptor = this.subscribeToChannelRequests(node)
+        // TODO: Multi node support
+        console.log('Channel acceptor is listening: service: ' + chanAcceptorSvc)
+        chanAcceptor.on('channel_request', (chan) => {
+          console.log('New Channel Request:')
+          console.log(`ID: ${chan.id}`)
+          console.log(`Capacity: ${chan.capacity}`)
+          console.log(`Remote Node: ${chan.partner_public_key}`)
+          this.emit('broadcast', {
+            method: 'newChannelRequest',
+            args: chan,
+            svc: chanAcceptorSvc,
+            cb: (err, data) => {
+              if (err) {
+                console.log('CHANNEL_ACCEPTOR_ERROR: ', err)
+                console.log('Rejecting channel', chan.id)
+                return chan.reject()
+              }
+              if (data.accept) {
+                console.log('Accepted channel', chan.id)
+                chan.accept()
+              } else {
+                console.log('Rejected channel', chan.id, data.reason)
+                chan.reject()
+              }
+            }
+          })
+        })
+      }
+
+      const peerSvc = this.config.events.peer_events
+      if (peerSvc) {
+        const peers = this.subscribeToPeers(node)
+        peers.on('connected', (p) => {
+          peerSvc.forEach((svc) => {
+            this.emit('broadcast', { method: 'newPeerEvent', args: { event: 'connected', peer: p }, svc })
+          })
+        })
+
+        peers.on('disconnected', (p) => {
+          peerSvc.forEach((svc) => {
+            this.emit('broadcast', { method: 'newPeerEvent', args: { event: 'disconnected', peer: p }, svc })
+          })
+        })
+      }
+      })
+
+  }
+
+  getOnChainBalance (node, args, cb) {
+return    node.getOnChainBalance(args, cb)
+  }
+
+  getFeeRate (node, args, cb) {
+   return node.getFeeRate(args, cb)
+  }
+
+  createInvoice (node, args, cb) {
+   return node.createInvoice(args, cb)
+  }
+
+  createHodlInvoice (node, args, cb) {
+   return node.createHodlInvoice(args, cb)
+  }
+
+  settleHodlInvoice (node, args, cb) {
+   return node.settleHodlInvoice(args, cb)
+  }
+
+  cancelInvoice (node, args, cb) {
+   return node.cancelInvoice(args, cb)
+  }
+
+  node (config, args, cb) {
+   return node.decodePayReq(args, cb)
+  }
+
+  callAction(action,config, args,cb){
+    const n = this.getNode(config)
+    if(Array.isArray(n)){
+      const result = n.reduce((prev,current)=>{
+        prev[current.info._internal_node_name] = {
+          data:[],
+        }
+        return prev
+      },{})
+      return async.forEach(n,(node,next)=>{
+        this[action](node,args[0],(err,data)=>{
+          if(err) return next(err)
+          result[node.info._internal_node_name].data = data
+          next(null)
+        })
+      },(err)=>{
+        if(err) return cb(err)
+        cb(null,result)
       })
     }
-
-    const peerSvc = this.config.events.peer_events
-    if (peerSvc) {
-      const peers = this.subscribeToPeers()
-      peers.on('connected', (p) => {
-        peerSvc.forEach((svc) => {
-          this.emit('broadcast', { method: 'newPeerEvent', args: { event: 'connected', peer: p }, svc })
-        })
-      })
-
-      peers.on('disconnected', (p) => {
-        peerSvc.forEach((svc) => {
-          this.emit('broadcast', { method: 'newPeerEvent', args: { event: 'disconnected', peer: p }, svc })
-        })
-      })
-    }
-  }
-
-  getOnChainBalance (config, args, cb) {
-    this.getNode(config).getOnChainBalance(args, cb)
-  }
-
-  getFeeRate (config, args, cb) {
-    this.getNode(config).getFeeRate(args, cb)
-  }
-
-  createInvoice (config, args, cb) {
-    this.getNode(config).createInvoice(args, cb)
-  }
-
-  createHodlInvoice (config, args, cb) {
-    this.getNode(config).createHodlInvoice(args, cb)
-  }
-
-  settleHodlInvoice (config, args, cb) {
-    this.getNode(config).settleHodlInvoice(args, cb)
-  }
-
-  cancelInvoice (config, args, cb) {
-    this.getNode(config).cancelInvoice(args, cb)
-  }
-
-  decodePaymentRequest (config, args, cb) {
-    this.getNode(config).decodePayReq(args, cb)
+    return this[action](n,args[0],cb)
   }
 
   getNode (config) {
-    if (config && config.node_id) {
-      const n = this.nodes.filter((n) => {
-        return n.info.pubkey === config.node_id
-      })
-      if (n.length !== 1) {
-        throw new Error('Invalid node_id passed.')
+      if (config) {
+      if(config.node_id){
+        const n = this.nodes.filter((n) => {
+          return n.info.pubkey === config.node_id || n.info.node_name === config.node_id
+        })
+        if (n.length !== 1) {
+          throw new Error('Invalid node_id passed.')
+        }
+        return n.pop()
       }
-      return n.pop()
+      if(config.all){
+        return this.nodes
+      }
     }
     return this.nodes[0]
   }
 
-  pay (config, args, cb) {
-    this.getNode(config).pay(args, cb)
+  pay (node, args, cb) {
+   node.pay(args, cb)
   }
 
-  getInfo (config, args, cb) {
-    this.getNode(config).getInfo(args, cb)
+  getInfo (node, args, cb) {
+   node.getInfo(args, cb)
   }
 
-  getInvoice (config, args, cb) {
-    this.getNode(config).getInvoice(args, cb)
+  getInvoice (node, args, cb) {
+   node.getInvoice(args, cb)
   }
 
-  listInvoices (config, args, cb) {
-    this.getNode(config).listInvoices(args, cb)
+  listInvoices (node, args, cb) {
+   node.listInvoices(args, cb)
   }
 
-  listPayments (config, args, cb) {
-    this.getNode(config).listPayments(args, cb)
+  listPayments (node, args, cb) {
+   node.listPayments(args, cb)
   }
 
-  getPayment (config, args, cb) {
-    this.getNode(config).getPayment(args, cb)
+  getPayment (node, args, cb) {
+   node.getPayment(args, cb)
   }
 
-  getSettledPayment (config, args, cb) {
-    this.getNode(config).getSettledPayment(args, cb)
+  getSettledPayment (node, args, cb) {
+   node.getSettledPayment(args, cb)
   }
 
-  subscribeToInvoices (config) {
-    return this.getNode(config).subscribeToInvoices()
+  subscribeToInvoices (node) {
+    return node.subscribeToInvoices()
   }
 
-  subscribeToPaidInvoices (config) {
-    return this.getNode(config).subscribeToPaidInvoices()
+  subscribeToPaidInvoices (node) {
+    return node.subscribeToPaidInvoices()
   }
 
-  subscribeToPayments (config) {
-    return this.getNode(config).subscribeToPayments()
+  subscribeToPayments (node) {
+    return node.subscribeToPayments()
   }
 
-  subscribeToForwards (config) {
-    return this.getNode(config).subscribeToForwards()
+  subscribeToForwards (node) {
+    return node.subscribeToForwards()
   }
 
-  subscribeToChannelRequests (config) {
-    return this.getNode(config).subscribeToChannelRequests()
+  subscribeToChannelRequests (node) {
+    return node.subscribeToChannelRequests()
   }
 
-  subscribeToPeers (config) {
-    return this.getNode(config).subscribeToPeers()
+  subscribeToPeers (node) {
+    return node.subscribeToPeers()
   }
 
-  subscribeToTopology (config) {
-    return this.getNode(config).subscribeToTopology()
+  subscribeToTopology (node) {
+    return node.subscribeToTopology()
   }
 
-  getNetworkGraph (config, args, cb) {
-    return this.getNode(config).getNetworkGraph(args, cb)
+  getNetworkGraph (node, args, cb) {
+    return node.getNetworkGraph(args, cb)
   }
 
-  listChannels (config, args, cb) {
+  listChannels (node, args, cb) {
     return new Promise((resolve, reject) => {
-      this.getNode(config).listChannels(args, (err, data) => {
+      node.listChannels(args, (err, data) => {
         if (err) return cb ? cb(err) : reject(err)
         if (args && args.remote_node) {
           data = data.filter((ch) => {
@@ -204,32 +230,36 @@ class LightningManager extends EventEmitter {
     })
   }
 
-  listPeers (config, args, cb) {
-    return this.getNode(config).listPeers(args, cb)
+  listPeers (node, args, cb) {
+    return node.listPeers(args, cb)
   }
 
-  listClosedChannels (config, args, cb) {
-    return this.getNode(config).listClosedChannels(args, cb)
+  listClosedChannels (node, args, cb) {
+    return node.listClosedChannels(args, cb)
   }
 
-  getChannel (config, args, cb) {
-    return this.getNode(config).getChannel(args, cb)
+  getChannel (node, args, cb) {
+    return node.getChannel(args, cb)
   }
 
-  openChannel (config, args, cb) {
-    return this.getNode(config).openChannel(args, cb)
+  openChannel (node, args, cb) {
+    return node.openChannel(args, cb)
   }
 
-  closeChannel (config, args, cb) {
-    return this.getNode(config).closeChannel(args, cb)
+  closeChannel (node, args, cb) {
+    return node.closeChannel(args, cb)
   }
 
-  addPeer (config, args, cb) {
-    return this.getNode(config).addPeer(args, cb)
+  addPeer (node, args, cb) {
+    return node.addPeer(args, cb)
   }
 
-  updateRoutingFees (config, args, cb) {
-    return this.getNode(config).updateRoutingFees(args, (err, data) => {
+  getForwards(node,args,cb){
+    return node.getForwards(args, cb)
+  }
+
+  updateRoutingFees (node, args, cb) {
+    return node.updateRoutingFees(args, (err, data) => {
       if (err) {
         return cb(err)
       }
@@ -238,6 +268,18 @@ class LightningManager extends EventEmitter {
       }
       cb(null, data)
     })
+  }
+
+  getChannelBalance(node,args,cb){
+    return node.getChannelBalance(args, cb)
+  }
+
+  getChainBalance(node,args,cb){
+    return node.getChainBalance(args, cb)
+  }
+
+  getPendingChainBalance(node,args,cb){
+    return node.getPendingChainBalance(args, cb)
   }
 }
 
