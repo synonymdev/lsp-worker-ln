@@ -290,10 +290,30 @@ class LND {
   }
 
   listChannels (args, cb) {
-    this._lnd('getChannels', args, (err, data) => {
-      if (err) return cb(err)
-      cb(null, data ? data.channels : [])
+    async.parallel([
+      (next)=>{
+        this._lnd('getFeeRates', args, (err, data) => {
+          if (err) return next(err)
+          next(null, data ? data.channels : [])
+        })
+      }, 
+      (next)=>{
+        this._lnd('getChannels', args, (err, data) => {
+          if (err) return next(err)
+          next(null, data ? data.channels : [])
+        })
+      }
+    ],(err,data)=>{
+      if(err){
+        return cb(err)
+      }
+      const chans = data[1].map((chan)=>{
+        const fee = _.find(data[0],{id:chan.id})
+        return {...chan, ...fee}
+      })
+      cb(null,chans)
     })
+
   }
 
   listPeers (args, cb) {
@@ -398,6 +418,7 @@ class LND {
   getPendingChainBalance(args,cb){
     this._lnd('getPendingChainBalance', args, cb)
   }
+
 }
 
 module.exports = LND

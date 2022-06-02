@@ -1,4 +1,5 @@
 const async = require('async')
+const {find} = require('lodash')
 const Node = require('./Node')
 const { EventEmitter } = require('events')
 
@@ -88,7 +89,7 @@ class LightningManager extends EventEmitter {
   }
 
   getOnChainBalance (node, args, cb) {
-return    node.getOnChainBalance(args, cb)
+    return node.getOnChainBalance(args, cb)
   }
 
   getFeeRate (node, args, cb) {
@@ -120,6 +121,7 @@ return    node.getOnChainBalance(args, cb)
     if(Array.isArray(n)){
       const result = n.reduce((prev,current)=>{
         prev[current.info._internal_node_name] = {
+          node_public_key: current.info.public_key,
           data:[],
         }
         return prev
@@ -139,7 +141,7 @@ return    node.getOnChainBalance(args, cb)
   }
 
   getNode (config) {
-      if (config) {
+    if (config) {
       if(config.node_id){
         const n = this.nodes.filter((n) => {
           return n.info.pubkey === config.node_id || n.info.node_name === config.node_id
@@ -280,6 +282,24 @@ return    node.getOnChainBalance(args, cb)
 
   getPendingChainBalance(node,args,cb){
     return node.getPendingChainBalance(args, cb)
+  }
+
+  getNodeOfClosedChannel(node,args,cb){
+    let nodeChan = null
+    async.eachSeries(this.nodes,(n, next)=>{
+      if(nodeChan) return next()
+      n.listClosedChannels({},(err,data)=>{
+        if(err) return next(err)
+        nodeChan = find(data,{id: args.channel_id},null)
+        next()
+      })
+    },(err,data)=>{
+      if(err) return cb(err)
+      if(!nodeChan) return cb(null, null)
+      cb(null,{
+        public_key: nodeChan.partner_public_key,
+      })
+    })
   }
 }
 
