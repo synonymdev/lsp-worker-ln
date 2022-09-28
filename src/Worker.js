@@ -13,7 +13,7 @@ class Lightning extends Worker {
       port: config.port,
       db_url: 'mongodb://0.0.0.0:27017'
     })
-    let lnConfig = 
+    let lnConfig
     if(config?.ln_nodes){
       lnConfig.ln_nodes
       lnConfig.events ? lnConfig.events : {
