@@ -6,7 +6,13 @@ const lns = require('ln-service')
 const async = require('async')
 const _ = require('lodash')
 
-const toB64 = (path) => readFileSync(path, { encoding: 'base64' })
+const toB64 = (path) => {
+  try{
+    return readFileSync(path, { encoding: 'base64' })
+  } catch(err){
+    return path
+  }
+}
 const dateKeys = ['confirmed_at', 'created_at', 'expires_at']
 const randomSecret = () => randomBytes(32)
 const sha256 = buffer => createHash('sha256').update(buffer).digest('hex')
@@ -166,7 +172,6 @@ class LND {
 
     sub.on('invoice_updated', (invoice) => {
       // invoice.confirmed_at = invoice.confirmed_at ? +new Date(invoice.confirmed_at) : null
-      console.log(invoice)
       event.emit('invoice_updated', invoice)
     })
     sub.on('end', (err) => {

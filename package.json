@@ -6,10 +6,9 @@
   "dependencies": {
     "async": "^3.2.3",
     "blocktank-worker": "git+https://github.com/synonymdev/blocktank-worker.git",
-    "ln-service": "^53.8.0",
+    "ln-service": "^53.23.0",
     "lodash": "^4.17.21"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
