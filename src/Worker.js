@@ -2,6 +2,7 @@
 const { Worker } = require('blocktank-worker')
 const NodeMan = require('./NodeMan')
 const fs = require("fs")
+const path = require("path")
 const privates = [
   'constructor'
 ]
@@ -42,8 +43,9 @@ class Lightning extends Worker {
 
   _getConfig(){
     try{
-      return JSON.parse(fs.readFileSync('../config/worker.config.json',{encoding:"utf8"}))
+      return JSON.parse(fs.readFileSync(path.resolve(__dirname,'../config/worker.config.json'),{encoding:"utf8"}))
     } catch(err){
+        console.log(err) 
       return this.errRes("FAILED_TO_LOAD_CONFIG")
     }
   }
