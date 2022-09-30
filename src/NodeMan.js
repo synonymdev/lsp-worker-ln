@@ -59,12 +59,6 @@ class LightningManager extends EventEmitter {
               }
               if (data.accept) {
                 console.log('Accepted channel', chan.id)
-                if(chan.partner_public_key === "026f8255ebbfd6bf533d67a228925faab4ca21167d129ecd3d840c22ce5b541a66"){
-                  return chan.accept({
-                    min_confirmations: 0,
-                    is_trusted_funding: true,
-                  })
-                }
                 chan.accept()
               } else {
                 console.log('Rejected channel', chan.id, data.reason)
