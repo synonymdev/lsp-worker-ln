@@ -176,8 +176,12 @@ class LightningNode {
     return this.node.getChainBalance(args, cb)
   }
 
-  getPendingChainBalance(args,cb){
+  getClosedChannels(args,cb){
     return this.node.getPendingChainBalance(args, cb)
+  }
+
+  getClosedChannels(args,cb){
+    return this.node.getClosedChannels(args, cb)
   }
 }
 

@@ -1,7 +1,7 @@
 'use strict'
 const { Worker } = require('blocktank-worker')
 const NodeMan = require('./NodeMan')
-const lnConfig = require('../config/worker.config.json')
+const fs = require("fs")
 const privates = [
   'constructor'
 ]
@@ -10,9 +10,21 @@ class Lightning extends Worker {
   constructor (config) {
     super({
       name: 'svc:ln',
-      port: 5812,
-      db_url: 'mongodb://localhost:27017'
+      port: config.port,
+      db_url: 'mongodb://0.0.0.0:27017'
     })
+    let lnConfig = {}
+    if(config?.ln_nodes){
+      lnConfig.ln_nodes = config.ln_nodes
+      lnConfig.events ? lnConfig.events : {
+        htlc_forward_event: [],
+        channel_acceptor: [],
+        peer_events: [],
+      }
+    } else {
+      lnConfig = this._getConfig()
+    }
+
     this.ln = new NodeMan(
       {
         nodes: lnConfig.ln_nodes,
@@ -26,6 +38,14 @@ class Lightning extends Worker {
     this.ln.on('broadcast', ({ svc, method, args, cb }) => {
       this.callWorker(svc, method, args, cb)
     })
+  }
+
+  _getConfig(){
+    try{
+      return JSON.parse(fs.readFileSync('../config/worker.config.json',{encoding:"utf8"}))
+    } catch(err){
+      return this.errRes("FAILED_TO_LOAD_CONFIG")
+    }
   }
 
   start () {
