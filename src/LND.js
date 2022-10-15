@@ -361,12 +361,19 @@ class LND {
     })
   }
 
-  pay (invoice, cb) {
+  pay (args, cb) {
+    let invoice, tokens
+    if(typeof args === "string"){
+      invoice = args
+    } else{
+      invoice = args.invoice
+      tokens = args.amount
+    }
     async.auto({
       // Attempt to pay to pay request
       pay: (next) => {
-        this._lnd('payViaPaymentRequest', { request: invoice, max_fee: MAX_LN_TX_FEE }, (err, data) => {
-          if (err) {
+        this._lnd('payViaPaymentRequest', { request: invoice, max_fee: MAX_LN_TX_FEE, tokens  }, (err, data) => {
+        if (err) {
             return next(err)
           }
           // if the secret is valid and it has made hops

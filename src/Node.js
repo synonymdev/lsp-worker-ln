@@ -80,8 +80,8 @@ class LightningNode {
     }, cb)
   }
 
-  pay ({ invoice }, cb) {
-    this.node.pay(invoice, cb)
+  pay (args, cb) {
+    this.node.pay(args, cb)
   }
 
   getForwards(args,cb){
