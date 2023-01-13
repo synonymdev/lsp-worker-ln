@@ -29,6 +29,17 @@ class LightningManager extends EventEmitter {
   }
 
   listenToEvents () {
+
+    this.getNode({all: true}).map(node => {
+      const eventEmitter = this.subscribeToPaidInvoices(node)
+      eventEmitter.on('invoice_paid', (invoice) => {
+        console.log('config', this.config)
+        this.config.events.invoice_paid.forEach((svc) => {
+          this.emit('broadcast', { method: 'invoicePaid', args: [invoice], svc })
+        })
+      })
+    })
+
     this.getNode({all:true}).map((node)=>{
       const event = this.subscribeToForwards(node)
       event.on('forward', (d) => {

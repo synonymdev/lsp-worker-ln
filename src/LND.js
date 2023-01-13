@@ -220,7 +220,7 @@ class LND {
     ev.on('end', (err) => {
       event.emit('end', err)
     })
-    return ev
+    return event
   }
 
   subscribeToGraph () {
