@@ -383,44 +383,57 @@ class LND {
       tokens,
       pathfinding_timeout: pathfindingTimeoutMs
     }
-    console.log('try to pay', payArgs)
-    async.auto({
-      // Attempt to pay to pay request
-      pay: (next) => {
-        this._lnd('payViaPaymentRequest', payArgs, (err, data) => {
-          console.log('finished payment', err, data)
-          if (err) {
-            return next(err)
-          }
-          // if the secret is valid and it has made hops
-          if (data.secret) {
-            return next(null, data)
-          }
-          console.log('Retrying payment: ', invoice)
-          next(new Error('Try Payment Again: ' + data))
-        })
+    async.race([
+      (raceNext) => {
+        // Timeout if the payment is stuck.
+        // For example in case of a hodl invoice.
+        setTimeout(() => {
+          raceNext(new Error(JSON.stringify([503, 'PaymentAttemptsTimedOut'])))
+        }, payArgs.pathfinding_timeout)
       },
-      // Double check that the payment is confirmed
-      paymentData: ['pay', ({ pay }, next) => {
-        this.getPayment(pay.id, (err, data) => {
-          if (err) {
-            return next(err)
-          }
+      (raceNext) => {
+        async.auto({
+          // Attempt to pay to pay request
+          pay: (next) => {
+            this._lnd('payViaPaymentRequest', payArgs, (err, data) => {
+              if (err) {
+                return next(err)
+              }
+              // if the secret is valid and it has made hops
+              if (data.secret) {
+                return next(null, data)
+              }
+              console.log('Retrying payment: ', invoice)
+              next(new Error('Try Payment Again: ' + data))
+            })
+          },
+          // Double check that the payment is confirmed
+          paymentData: ['pay', ({ pay }, next) => {
+            this.getPayment(pay.id, (err, data) => {
+              if (err) {
+                return next(err)
+              }
 
-          if (!data.is_confirmed && data.is_failed === true) {
-            return next(new Error('Payment has failed'))
+              if (!data.is_confirmed && data.is_failed === true) {
+                return next(new Error('Payment has failed'))
+              }
+              return next(null, data)
+            })
+          }],
+        }, (err, data) => {
+          if (err) {
+            return raceNext(err)
           }
-          return next(null, data)
+          raceNext(null, data.paymentData)
         })
-      }]
-    }, (err, data) => {
+      }
+    ], (err, data) => {
       if (err) {
         return cb(err)
       }
-      cb(null, data.paymentData)
+      cb(null, data)
     })
   }
-
 
   openChannel(args, cb) {
     this._lnd('openChannel', {
