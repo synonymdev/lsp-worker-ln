@@ -21,6 +21,7 @@ class Lightning extends Worker {
         htlc_forward_event: [],
         channel_acceptor: [],
         peer_events: [],
+        invoice_paid_event: [],
       }
     } else {
       lnConfig = this._getConfig()
@@ -32,7 +33,8 @@ class Lightning extends Worker {
         events: {
           htlc_forward_event: lnConfig.htlc_forward_event,
           channel_acceptor: lnConfig.channel_acceptor,
-          peer_events: lnConfig.peer_events
+          peer_events: lnConfig.peer_events,
+          invoice_paid_event: lnConfig.invoice_paid_event
         }
       })
 
