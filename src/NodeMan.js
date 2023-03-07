@@ -33,7 +33,7 @@ class LightningManager extends EventEmitter {
     this.getNode({all: true}).map(node => {
       const eventEmitter = this.subscribeToPaidInvoices(node)
       eventEmitter.on('invoice_paid', (invoice) => {
-        this.config.events.invoice_paid_event.forEach((svc) => {
+        this.config.events.invoice_paid_events.forEach((svc) => {
           this.emit('broadcast', { method: 'invoicePaid', args: [invoice], svc })
         })
       })
