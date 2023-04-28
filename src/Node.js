@@ -19,7 +19,7 @@ class LightningNode {
 
   start (cb) {
     this.getInfo((err, data) => {
-      if (err) throw err
+      if (err) return cb(err)
       this.info = {
         node_name: this.config.node_name,
         pubkey: data.public_key,
@@ -36,6 +36,18 @@ class LightningNode {
 
   getInvoice (args, cb) {
     this.node.getInvoice(args, cb)
+  }
+
+  createWalletSeed (args, cb) {
+    this.node.createWalletSeed(args, cb)
+  }
+
+  getWalletStatus (args, cb) {
+    this.node.getOffChainWallet(args, cb)
+  }
+
+  createOffChainWallet(args, cb) {
+    this.node.createOffChainWallet(args, cb)
   }
 
   getFeeRate (args, cb) {

@@ -3,6 +3,7 @@ const { Worker } = require('blocktank-worker')
 const NodeMan = require('./NodeMan')
 const fs = require("fs")
 const path = require("path")
+const workerConfig = require("../config/worker.config.json")
 const privates = [
   'constructor'
 ]
@@ -12,7 +13,7 @@ class Lightning extends Worker {
     super({
       name: 'svc:ln',
       port: config.port,
-      db_url: 'mongodb://0.0.0.0:27017'
+      db_url: workerConfig.db_url
     })
     let lnConfig = {}
     if(config?.ln_nodes){

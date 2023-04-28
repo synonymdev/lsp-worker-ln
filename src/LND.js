@@ -19,7 +19,9 @@ const sha256 = buffer => createHash('sha256').update(buffer).digest('hex')
 
 const MAX_LN_TX_FEE = 1000
 const PATHFINDING_TIMEOUT_MS = 30 * 1000
+
 class LND {
+
   constructor(config) {
     this.config = config
     const { lnd } = lns.authenticatedLndGrpc({
@@ -27,6 +29,11 @@ class LND {
       macaroon: toB64(config.macaroon),
       socket: config.socket
     })
+    const unauth = lns.unauthenticatedLndGrpc({
+      socket: config.socket,
+      cert: toB64(config.cert)
+    })
+    this.unauthLnd = unauth.lnd
     this.lnd = lnd
   }
 
@@ -35,6 +42,37 @@ class LND {
       return this[method](args, cb)
     }
     return this._lnd(method, args, cb)
+  }
+  
+  callUnauthLnd(method, args, cb) { 
+    const params = _.extend({ lnd: this.unauthLnd }, args)
+    return lns[method](params, (err, data) => {
+      if (err) {
+        return cb(new Error(JSON.stringify(err)), data)
+      }
+      return cb(err, data)
+    })
+  }
+
+  createWalletSeed(args, cb) {
+    this.callUnauthLnd('createSeed', {}, (err, data) => {
+      if (err) return cb(err)
+      cb(null, data)
+    })
+  }
+  
+  getOffChainWallet(args, cb) {
+    this.callUnauthLnd('getWalletStatus', {}, (err, data) => {
+      if (err) return cb(err)
+      cb(null, data)
+    })
+  }
+
+  createOffChainWallet(args, cb){
+    this.callUnauthLnd('createWallet', { password : args.password, seed: args.seed }, (err, data) => {
+      if (err) return cb(err)
+      cb(null, data)
+    })
   }
 
   _lnd(method, args, cb) {

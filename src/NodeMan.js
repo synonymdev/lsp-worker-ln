@@ -15,9 +15,13 @@ class LightningManager extends EventEmitter {
     async.map(this.nodes, (node, next) => {
       node.start(next)
     }, (err) => {
-      if (err) throw err
+      if (err) return cb(err)
       this.setupNodes((err, data) => {
-        if (err) throw err
+        if (err) {
+          console.log("NODE NOT STARTED")
+          console.log(err)
+          return 
+        }
         cb(null, this)
       })
     })
@@ -120,6 +124,14 @@ class LightningManager extends EventEmitter {
 
   cancelInvoice (node, args, cb) {
    return node.cancelInvoice(args, cb)
+  }
+  
+  createOffChainWallet (node, args, cb) {
+   return node.createOffChainWallet(args, cb)
+  }
+
+  createWalletSeed (node, args, cb) {
+   return node.createWalletSeed(args, cb)
   }
 
   node (config, args, cb) {
@@ -240,6 +252,10 @@ class LightningManager extends EventEmitter {
         cb ? cb(null, data) : resolve(data)
       })
     })
+  }
+  
+  getWalletStatus (node, args, cb) {
+    node.getWalletStatus(args, cb)
   }
 
   listPeers (node, args, cb) {
