@@ -38,6 +38,10 @@ class LightningNode {
     this.node.getInvoice(args, cb)
   }
 
+  createOnChainAddress (args, cb) {
+    this.node.createOnChainAddress(args, cb)
+  }
+
   createWalletSeed (args, cb) {
     this.node.createWalletSeed(args, cb)
   }

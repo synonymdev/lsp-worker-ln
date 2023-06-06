@@ -84,6 +84,13 @@ class LND {
       return cb(err, data)
     })
   }
+  
+  createOnChainAddress(args, cb) {
+    this.callLND('createChainAddress', {}, (err, data) => {
+      if (err) return cb(err)
+      cb(null, data)
+    })
+  }
 
   getFeeRate(args, cb) {
     this.callLND('getChainFeeRate', {}, (err, data) => {
@@ -478,7 +485,8 @@ class LND {
       local_tokens: args.local_amt,
       give_tokens: args.remote_amt,
       partner_public_key: args.remote_pub_key,
-      is_private: args.is_private
+      is_private: args.is_private,
+      fee_rate: args.fee_rate
     }, cb)
   }
 

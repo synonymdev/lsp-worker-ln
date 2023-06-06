@@ -130,6 +130,10 @@ class LightningManager extends EventEmitter {
    return node.createOffChainWallet(args, cb)
   }
 
+  createOnChainAddress (node, args, cb) {
+   return node.createOnChainAddress(args, cb)
+  }
+
   createWalletSeed (node, args, cb) {
    return node.createWalletSeed(args, cb)
   }
